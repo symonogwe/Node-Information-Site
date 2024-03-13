@@ -2,7 +2,7 @@ const http = require("http");
 const path = require("path");
 const fs = require("fs/promises");
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8080;
 
 const myServer = http.createServer((req, res) => {
   // Get the file path based on the req.url
@@ -39,17 +39,22 @@ const myServer = http.createServer((req, res) => {
     try {
       const data = await fs.readFile(filePath, "utf8");
       res.writeHead(200, { "Content-Type": contentType });
-      res.end(data);
+      res.end(data, "utf8");
     } catch (error) {
-      const errorPage = path.join(__dirname, "Pages", "404.html");
-      res.writeHead(404, { "Content-Type": contentType });
-      res.end(await fs.readFile(errorPage, "utf8"));
+      if (error.code === "ENOENT") {
+        const errorPage = await fs.readFile(
+          path.join(__dirname, "Pages", "404.html")
+        );
+        res.writeHead(200, { "Content-Type": "text/html" });
+        res.end(errorPage, "utf8");
+      } else {
+        res.writeHead(500);
+        res.end(`Error: ${error.code}`);
+      }
     }
   }
 
   readFiles();
-
-  //   res.end();
 });
 
 myServer.listen(port, () => console.log("server is running"));
